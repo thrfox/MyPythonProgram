@@ -36,7 +36,7 @@ class My_TagExchange_Tool():
         return x
 
 class Spider_BaiduTieBaOnlyLZ():
-    def __init__(self,url_or_id,authorCtrller=0):
+    def __init__(self,url_or_id,getAuthor):
         '''
         Args:
             self.url:需解析的url
@@ -50,8 +50,8 @@ class Spider_BaiduTieBaOnlyLZ():
         #是否爬取作者数据
         # 如果url为只看楼主，则默认不每行添加作者，可将authorCtrlller设为1强制打开
         if re.search('see_lz', self.url):
-            self.authorCtrller = 0
-        self.authorCtrller = authorCtrller
+            self.getAuthor = False
+        self.getAuthor = getAuthor
 
         self.myTool = My_TagExchange_Tool()
         print('爬虫启动中...')
@@ -141,26 +141,24 @@ class Spider_BaiduTieBaOnlyLZ():
         return int(pages)
 
     #获取楼层数与发表日期和作者
-    def find_authorNfloorNdate(self,HTML_page,Controller=1):
+    def find_authorNfloorNdate(self,HTML_page):
         #控制如果启动，则爬取楼层与作者信息
         author = re.findall(r'<img username="(.*?)"',HTML_page)
         floor = re.findall(r'class="tail-info">(\d+?\S)</span>',HTML_page)
         date = re.findall(r'class="tail-info">([\d\- :]{12,16})</span>',HTML_page)
-        if Controller==1:
-            #循环取出作者，楼层，日期，拼接成str装入list
-            reS = []
-            n = len(author)
-            i = 0
-            while(n>0):
-                n = n - 1
-                #拼接成str
-                basic = '作者@' + author[i] + ';' + floor[i] + ';日期' +date[i]
-                i = i + 1
-                reS.append(basic)
+        #循环取出作者，楼层，日期，拼接成str装入list
+        reS = []
+        n = len(author)
+        i = 0
+        while(n>0):
+            n = n - 1
+            #拼接成str
+            basic = '作者@' + author[i] + ';' + floor[i] + ';日期' +date[i]
+            i = i + 1
+            reS.append(basic)
 
-            #返回一个list
-            return reS
-        return None
+        #返回一个list
+        return reS
 
     #存储数据为txt
     def sava_txt(self,title,datas):
@@ -192,7 +190,7 @@ class Spider_BaiduTieBaOnlyLZ():
         return ok_datas
 
 
-    def get_all_page(self,url,endPage,authorCtrller):
+    def get_all_page(self,url,endPage,getAuthor):
         '''
         Args:
             cur_url:将每个传入的url加上页码数
@@ -212,11 +210,11 @@ class Spider_BaiduTieBaOnlyLZ():
             if HTML_page != None:
                 print('第%d页获取成功'% i )
                 contents = self.deal_datas(HTML_page)
-                authors = self.find_authorNfloorNdate(HTML_page)
                 for i in range(len(contents)):
                     self.datas.append(contents[i])
-                    #控制器==1，爬取作者
-                    if authorCtrller==1:
+                    #控制器==True，爬取作者
+                    if getAuthor==True:
+                        authors = self.find_authorNfloorNdate(HTML_page)
                         self.datas.append(authors[i]+'\n')
 
     #爬虫入口启动
@@ -230,7 +228,7 @@ class Spider_BaiduTieBaOnlyLZ():
         HTML_page = self.open_url(self.url)
         title = self.find_title(HTML_page)
         endPages = self.serach_pages(HTML_page)
-        self.get_all_page(self.url, endPages,self.authorCtrller)
+        self.get_all_page(self.url, endPages,self.getAuthor)
         if self.datas != []:
             '''以下代码Debug'''
             logging.info(self.datas)
@@ -238,5 +236,5 @@ class Spider_BaiduTieBaOnlyLZ():
 
 
 bdurl = r'https://tieba.baidu.com/p/5244165082'
-bdtbSpider = Spider_BaiduTieBaOnlyLZ(bdurl,authorCtrller=1)
+bdtbSpider = Spider_BaiduTieBaOnlyLZ(bdurl,getAuthor=True)
 bdtbSpider.start_spider()
